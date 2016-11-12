@@ -1,0 +1,258 @@
+﻿<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title>RVIP</title>
+    <script type="text/javascript" lang="js">
+        var i = 0;
+        var count = 1;
+        Start = function () {
+            document.getElementById("startButton").style.display = 'none';
+            document.getElementById("captureButton").disabled = false;
+            document.getElementById("divElement").innerText = "";
+            var displayArray = RVIP.getNumberSet();
+            var getRefreshTime = RVIP.getRefreshTime();
+            var interval = setInterval(function () {
+                if (i < displayArray.length) {
+                    document.getElementById("divElement").innerText = displayArray[i];
+                    RVIP.setDisplayNumberWithTime(i);
+                } else {
+                    document.getElementById("divElement").innerText = "Done"
+                    RVIP.getResponseClickInfoWithTime();
+                    i = 0;
+                    count = 1;
+                    clearInterval(interval);
+                    var results = RVIP.CalculateResponseClickResults();
+                    if (results.length > 1) {
+                        document.getElementById("responseClicks").innerText = results[0];
+                        document.getElementById("correctClicks").innerText = results[1];
+                        var totalTargetSets = RVIP.getTotalTragetSets();
+                        document.getElementById("percentage").innerText = (results[1] / totalTargetSets) * 100;
+                    }
+                }
+                i++;
+                count++;
+            }, getRefreshTime);
+        }
+        function Capture() {
+            RVIP.setResponseClickInfoWithTime(i);
+        }
+        function NumberAndTime(numberIndex, time) {
+            this.numberIndex = numberIndex;
+            this.time = time;
+        }
+        var RVIP = function () {
+            var refreshTimInMs = 600,
+            targetSetsPreMinute = 8,
+            totalRunTime = 12,
+            numberContainer = [],
+            displayContainer = [],
+            LoadDisplayNumberWithTime = [],
+            NumberWithTime = [],
+            responseClickInfoWithTime = [];
+            var intiNumberContainer = function () {
+                numberContainer = [];
+                for (var i = 1; i <= 9; i++) {
+                    numberContainer.push(i);
+                }
+            };
+            var setDisplayNumberWithTime = function (numberIndex) {
+                var currentDate = new Date();
+                var currentTime = currentDate.getTime();
+                LoadDisplayNumberWithTime.push(new NumberAndTime(numberIndex, currentTime));
+            };
+            var getDisplayNumberWithTime = function () {
+                return LoadDisplayNumberWithTime;
+            };
+            var setResponseClickInfoWithTime = function (numberIndex) {
+                var currentDate = new Date();
+                var currentTime = currentDate.getTime();
+                responseClickInfoWithTime.push(new NumberAndTime(numberIndex, currentTime));
+            };
+            var getResponseClickInfoWithTime = function () {
+                return responseClickInfoWithTime;
+            };
+            var getRefreshTime = function () {
+                return refreshTimInMs;
+            };
+            var setRefreshTime = function (refreshTime) {
+                refreshTimInMs = refreshTime;
+            };
+            var getRunTime = function () {
+                return totalRunTime;
+            };
+            var setRunTime = function (runtime) {
+                totalRunTime = runtime;
+            };
+            var getNumberFromContainer = function () {
+                return numberContainer[Math.floor(Math.random() * numberContainer.length)];
+            };
+            var getTotalTragetSets = function () {
+                return targetSetsPreMinute * totalRunTime;
+            };
+            var getEvenNumber = function () {
+                var number;
+                while (!number || number % 2 !== 0) {
+                    number = getNumberFromContainer();
+                }
+                return number;
+            };
+            var getOddNumber = function () {
+                var number;
+                while (!number || number % 2 === 0) {
+                    number = getNumberFromContainer();
+                }
+                return number;
+            };
+            var getEvenTargetSet = function (currentIndex) {
+                var numberSet = [];
+                numberSet.push(getOddNumber());
+                for (var i = 0; i < 3; i++) {
+                    numberSet.push(getEvenNumber());
+                }
+                var currentDate = new Date();
+                var currentTime = currentDate.getTime();
+                NumberWithTime.push(new NumberAndTime(currentIndex + 3, currentTime));
+
+                numberSet.push(getOddNumber());
+                return numberSet;
+            };
+            var getOddTargetSet = function (currentIndex) {
+                var numberSet = [];
+                numberSet.push(getEvenNumber());
+                for (var i = 0; i < 3; i++) {
+                    numberSet.push(getOddNumber());
+                }
+                var currentDate = new Date();
+                var currentTime = currentDate.getTime();
+                NumberWithTime.push(new NumberAndTime(currentIndex + 3, currentTime));
+
+                numberSet.push(getEvenNumber());
+                return numberSet;
+            };
+            var populateDisplayContainer = function () {
+                var evenTargetSetAdded = false;
+                var targetSetCount = 0;
+                var targetSetPopulationInverval = [2, 3, 4, 5, 6];
+                var array;
+                for (var i = 1; i <= 60; i++) {
+                    if (i % 2 !== 0) {
+                        displayContainer.push(getEvenNumber());
+                    } else {
+                        displayContainer.push(getOddNumber());
+                    }
+                    if (i % targetSetPopulationInverval[Math.floor(Math.random() * targetSetPopulationInverval.length)] === 0 && targetSetCount < 8) {
+                        if (!evenTargetSetAdded) {
+                            array = getEvenTargetSet(displayContainer.length);
+                            for (var j = 0; j < array.length; j++) {
+                                displayContainer.push(array[j]);
+                            }
+                            evenTargetSetAdded = true;
+                        } else {
+                            array = getOddTargetSet(displayContainer.length);
+                            for (var k = 0; k < array.length; k++) {
+                                displayContainer.push(array[k]);
+                            }
+                            evenTargetSetAdded = false;
+                        }
+                        targetSetCount++;
+                    }
+                }
+            };
+            var CalculateResponseClickResults = function () {
+                var correctClick = 0;
+                var resultArray = [];
+                for (var i = 0; i < responseClickInfoWithTime.length; i++) {
+                    var index = responseClickInfoWithTime[i].numberIndex;
+                    var time = responseClickInfoWithTime[i].time;
+                    for (var j = 0; j < NumberWithTime.length; j++) {
+                        if ((NumberWithTime[j].numberIndex === index || NumberWithTime[j].numberIndex === index - 1 || NumberWithTime[j].numberIndex === index - 2) && (time - NumberWithTime[j].time) <= 85000) {
+                            correctClick++;
+                            break;
+                        }
+                    }
+                }
+                resultArray.push(responseClickInfoWithTime.length);
+                resultArray.push(correctClick);
+                return resultArray;
+            };
+            var getNumberSet = function () {
+                resetArrays();
+                intiNumberContainer();
+                displayContainer = [];
+                for (var i = 0; i < totalRunTime; i++) {
+                    populateDisplayContainer();
+                }
+                return displayContainer;
+            };
+            var resetArrays = function () {
+                numberContainer = [];
+                displayContainer = [];
+                LoadDisplayNumberWithTime = [];
+                NumberWithTime = [];
+                responseClickInfoWithTime = [];
+            };
+            return {
+                getNumberSet: getNumberSet,
+                getTotalTragetSets: getTotalTragetSets,
+                getRefreshTime: getRefreshTime,
+                setRefreshTime: setRefreshTime,
+                getRunTime: getRunTime,
+                setRunTime: setRunTime,
+                getDisplayNumberWithTime: getDisplayNumberWithTime,
+                setDisplayNumberWithTime: setDisplayNumberWithTime,
+                setResponseClickInfoWithTime: setResponseClickInfoWithTime,
+                getResponseClickInfoWithTime: getResponseClickInfoWithTime,
+                CalculateResponseClickResults: CalculateResponseClickResults
+            };
+        }();
+    </script>
+    <style>
+        body {
+            background-color: black;
+        }
+
+        #divElement {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            margin-top: -50px;
+            margin-left: -50px;
+            width: 100px;
+            height: 100px;
+            color: white;
+            font-size: 500%;
+        }
+
+        #startButton {
+            width: 100%;
+            height: 100%;
+        }
+
+        #captureButton {
+            position: absolute;
+            left: 90%;
+            top: 80%;
+            width: 100px;
+            height: 50px;
+        }
+
+        #divResults {
+            width: 200px;
+            height: 200px;
+            border: 2px solid green;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div id="divElement">
+        <input id="startButton" type="button" value="Start" onclick="RVIP.setRunTime(1);Start();" />
+    </div>
+    <div id="divResults">
+        Total response Clicks : <label id="responseClicks"></label></br>
+        Correct response Clicks : <label id="correctClicks"></label></br>
+        Precentage (%): <label id="percentage"></label>
+    </div>
+    <input id="captureButton" type="button" value="Capture" onclick="Capture();" disabled />
+</body>
+</html>
